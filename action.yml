@@ -44,14 +44,12 @@ runs:
           VERSION: ${{ inputs.version }}
         run: |
           echo path=/tmp/tailscale_${VERSION}_amd64 >> $GITHUB_OUTPUT
-          echo key=tailscale-${VERSION}_amd64  >> $GITHUB_OUTPUT
+          echo key=tailscale-${VERSION}-amd64  >> $GITHUB_OUTPUT
       - name: Restore cached Tailscale
         id: cache-tailscale-restore
         uses: actions/cache/restore@v3
         with:
-          path: |
-            ${{ steps.tailscale-version.outputs.path }}/tailscale
-            ${{ steps.tailscale-version.outputs.path }}/tailscaled
+          path: ${{ steps.tailscale-version.outputs.path }}
           key: ${{ steps.tailscale-version.outputs.key }}
       - name: Install cached Tailscale
         if: steps.cache-tailscale-restore.outputs.cache-hit == 'true'
@@ -78,15 +76,13 @@ runs:
           curl "$URL" -o tailscale.tgz
           tar -C /tmp -xzf tailscale.tgz
           rm tailscale.tgz
-          sudo mv "${TSPATH}/tailscale" "${TSPATH}/tailscaled" /usr/bin
+          sudo cp "${TSPATH}/tailscale" "${TSPATH}/tailscaled" /usr/bin
       - name: Cache Tailscale
         if: steps.cache-tailscale-restore.outputs.cache-hit != 'true'
         id: cache-tailscale-save
         uses: actions/cache/save@v3
         with:
-          path: |
-            ${{ steps.tailscale-version.outputs.path }}/tailscale
-            ${{ steps.tailscale-version.outputs.path }}/tailscaled
+          path: ${{ steps.tailscale-version.outputs.path }}
           key: ${{ steps.tailscale-version.outputs.key }}
       - name: Start Tailscale Daemon
         shell: bash
