@@ -13,7 +13,7 @@ inputs:
   version:
     description: 'Tailscale version to use.'
     required: true
-    default: '1.32.1'
+    default: '1.42.0'
   args:
     description: 'Optional additional arguments to `tailscale up`'
     required: false
@@ -37,11 +37,26 @@ runs:
         run: |
           echo "::error title=⛔ error hint::Auth key empty, Maybe you need to populate it in the Secrets for your workflow, see more in https://docs.github.com/en/actions/security-guides/encrypted-secrets"
           exit 1
+      - name: Define Tailscale version
+        id: tailscale-version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo path=/tmp/tailscale_${VERSION}_amd64 >> $GITHUB_OUTPUT
+          echo key=tailscale_${VERSION}_amd64  >> $GITHUB_OUTPUT
+      - name: Restore cached Tailscale
+        id: cache-tailscale-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: /usr/bin/tailscaled
+          key: ${{ steps.tailscale-version.outputs.key }}
       - name: Download Tailscale
+        if: steps.cache-tailscale-restore.outputs.cache-hit != 'true'
         shell: bash
         id: download
         env:
           VERSION: ${{ inputs.version }}
+          TSPATH: ${{ steps.tailscale-version.outputs.path }}
         run: |
           MINOR=$(echo "$VERSION" | awk -F '.' {'print $2'})
           if [ $((MINOR % 2)) -eq 0 ]; then
@@ -52,8 +67,13 @@ runs:
           curl "$URL" -o tailscale.tgz
           tar -C /tmp -xzf tailscale.tgz
           rm tailscale.tgz
-          TSPATH=/tmp/tailscale_${VERSION}_amd64
           sudo mv "${TSPATH}/tailscale" "${TSPATH}/tailscaled" /usr/bin
+      - name: Cache Tailscale
+        id: cache-tailscale-save
+        uses: actions/cache/save@v3
+        with:
+          path: /usr/bin/tailscaled
+          key: ${{ steps.tailscale-version.outputs.key }}
       - name: Start Tailscale Daemon
         shell: bash
         run: |
