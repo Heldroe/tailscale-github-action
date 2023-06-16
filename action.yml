@@ -38,6 +38,7 @@ runs:
           echo "::error title=⛔ error hint::Auth key empty, Maybe you need to populate it in the Secrets for your workflow, see more in https://docs.github.com/en/actions/security-guides/encrypted-secrets"
           exit 1
       - name: Define Tailscale version
+        shell: bash
         id: tailscale-version
         env:
           VERSION: ${{ inputs.version }}
